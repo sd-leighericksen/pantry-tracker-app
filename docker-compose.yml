@@ -1,0 +1,60 @@
+services:
+  app:
+    build: .
+    environment:
+      # SQLite lives on the mounted volume.
+      DB_PATH: /data/pantry.sqlite
+      # Required by Open Food Facts — set a real contact in .env.
+      OFF_USER_AGENT: ${OFF_USER_AGENT:-PantryTracker/1.0 (admin@example.com)}
+      # OpenRouter (Phase 2) — server-side only.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # First-run only: auto-creates the household user if none exists.
+      PT_USERNAME: ${PT_USERNAME:-}
+      PT_PASSWORD: ${PT_PASSWORD:-}
+    volumes:
+      - pantry-data:/data
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    environment:
+      # Reach the pantry over the compose network — app:3000 stays internal.
+      PANTRY_API_URL: http://app:3000
+      # Device token minted in Settings → Device & API tokens (kind "api").
+      PANTRY_API_TOKEN: ${PANTRY_API_TOKEN:?set PANTRY_API_TOKEN (a ptk_ token) in .env}
+      MCP_PORT: "3001"
+      # Optional shared secret Hermes must send as `Authorization: Bearer`.
+      # Leave unset only on a fully trusted LAN.
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+    ports:
+      # The agent's ingress: http://<homelab-ip>:3001/mcp
+      - "3001:3001"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      # Set DOMAIN to your public hostname for automatic TLS; defaults to
+      # localhost (Caddy issues a local self-signed cert).
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  pantry-data:
+  caddy-data:
+  caddy-config:

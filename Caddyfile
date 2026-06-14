@@ -1,0 +1,7 @@
+# Reverse proxy in front of the Pantry Tracker app container.
+# DOMAIN is supplied by docker-compose (defaults to localhost). With a real
+# public hostname, Caddy provisions and renews TLS automatically.
+{$DOMAIN:localhost} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

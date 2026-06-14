@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1781318308627,
+      "tag": "0000_natural_lilandra",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781340958503,
+      "tag": "0001_true_cassandra_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781356088821,
+      "tag": "0002_strange_george_stacy",
+      "breakpoints": true
+    }
+  ]
+}
