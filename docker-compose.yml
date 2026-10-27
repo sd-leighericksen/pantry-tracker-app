@@ -8,19 +8,28 @@ services:
       OFF_USER_AGENT: ${OFF_USER_AGENT:-PantryTracker/1.0 (admin@example.com)}
       # OpenRouter (Phase 2) — server-side only.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_VISION_MODEL: ${OPENROUTER_VISION_MODEL:-}
+      OPENROUTER_TEXT_MODEL: ${OPENROUTER_TEXT_MODEL:-}
       # First-run only: auto-creates the household user if none exists.
       PT_USERNAME: ${PT_USERNAME:-}
       PT_PASSWORD: ${PT_PASSWORD:-}
     volumes:
       - pantry-data:/data
-    expose:
-      - "3000"
+    # Published on the host so the central Caddy on Nimbus Frieza can
+    # reverse-proxy (e.g. pantry.nimbuscloud.au -> 192.168.0.87:3000).
+    # No local Caddy: TLS/hostname is terminated on Frieza.
+    ports:
+      - "3000:3000"
     restart: unless-stopped
 
+  # MCP server for LAN agents (Hermes). Not started by default — it needs a
+  # real ptk_ API token minted in Settings → Device & API tokens. Enable with:
+  #   docker compose --profile mcp up -d
   mcp:
     build:
       context: .
       dockerfile: Dockerfile.mcp
+    profiles: ["mcp"]
     environment:
       # Reach the pantry over the compose network — app:3000 stays internal.
       PANTRY_API_URL: http://app:3000
@@ -37,24 +46,5 @@ services:
       - app
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2-alpine
-    environment:
-      # Set DOMAIN to your public hostname for automatic TLS; defaults to
-      # localhost (Caddy issues a local self-signed cert).
-      DOMAIN: ${DOMAIN:-localhost}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - app
-    restart: unless-stopped
-
 volumes:
   pantry-data:
-  caddy-data:
-  caddy-config:

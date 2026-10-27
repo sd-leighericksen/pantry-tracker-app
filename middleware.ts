@@ -17,6 +17,8 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const PUBLIC_PATHS = new Set([
   "/login",
   "/api/auth/login",
+  /* Kiosk self-provisions a session from a kiosk-kind device token. */
+  "/api/auth/kiosk",
   "/offline",
   /* PWA assets the browser fetches without a session. */
   "/manifest.webmanifest",

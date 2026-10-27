@@ -43,13 +43,24 @@ export async function createSession(userId: number): Promise<void> {
   await db.insert(schema.sessions).values({ id: sessionId, userId, expiresAt });
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+}
+
+/* Cookie attributes for the session. In production the app is served over
+ * HTTPS and may be embedded in a cross-site dashboard iframe (the kitchen
+ * kiosk), so the cookie must be SameSite=None; Secure; Partitioned (CHIPS)
+ * to be stored and sent in that third-party context. In dev (plain HTTP)
+ * fall back to Lax so the cookie still works without TLS. */
+function sessionCookieOptions(expiresAt: Date) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? ("none" as const) : ("lax" as const),
+    partitioned: isProd,
     path: "/",
     expires: expiresAt,
-  });
+  };
 }
 
 /**
@@ -90,13 +101,7 @@ export async function validateSession(): Promise<SessionUser | null> {
       .update(schema.sessions)
       .set({ expiresAt })
       .where(eq(schema.sessions.id, sessionId));
-    cookieStore.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      expires: expiresAt,
-    });
+    cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   }
 
   return { id: row.userId, username: row.username };
